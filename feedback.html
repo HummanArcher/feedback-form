@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Ocena spotkania</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .message { font-size: 20px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Przetwarzanie Twojej opinii...</h2>
+    <p class="message" id="status">Proszę czekać...</p>
+
+    <script>
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        const response = getQueryParam('response');
+        const email = getQueryParam('email');
+        const meeting = getQueryParam('meeting');
+
+        fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ response, email, meeting })
+        })
+        .then(response => {
+            if (response.ok) {
+                document.getElementById("status").innerText = "Dziękujemy za Twoją opinię!";
+            } else {
+                document.getElementById("status").innerText = "Wystąpił błąd. Spróbuj ponownie.";
+            }
+        })
+        .catch(() => {
+            document.getElementById("status").innerText = "Błąd połączenia.";
+        });
+    </script>
+</body>
+</html>
