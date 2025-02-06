@@ -6,44 +6,83 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
         .message { font-size: 20px; margin-top: 20px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <h2>Przetwarzanie Twojej opinii...</h2>
     <p class="message" id="status">Proszę czekać...</p>
 
-   <script>
-    function getQueryParam(param) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(param);
-    }
+    <div id="change-response" class="hidden">
+        <p>Już odpowiedziałeś na tę ankietę.</p>
+        <p>Twoja obecna ocena: <strong id="current-response"></strong></p>
+        <p>Czy chcesz zmienić swoją ocenę?</p>
+        <button onclick="updateResponse()">Tak</button>
+        <button onclick="cancel()">Nie</button>
+    </div>
 
-    const response = getQueryParam('response');
-    const email = getQueryParam('email');
-    const meeting = getQueryParam('meeting');
-
-    console.log("Debug - response:", response);
-    console.log("Debug - email:", email);
-    console.log("Debug - meeting:", meeting);
-
-    fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ response, email, meeting })
-    })
-    .then(response => {
-        if (response.ok) {
-            document.getElementById("status").innerText = "Dziękujemy za Twoją opinię!";
-        } else {
-            document.getElementById("status").innerText = "Wystąpił błąd. Spróbuj ponownie.";
+    <script>
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
         }
-    })
-    .catch(() => {
-        document.getElementById("status").innerText = "Błąd połączenia.";
-    });
-</script>
 
+        const response = getQueryParam('response');
+        const email = getQueryParam('email');
+        const meeting = getQueryParam('meeting');
+        const token = getQueryParam('token');
+
+        fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ action: "CHECK", token, email, meeting })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                // Już oddano głos
+                document.getElementById("status").classList.add("hidden");
+                document.getElementById("change-response").classList.remove("hidden");
+                document.getElementById("current-response").innerText = data.response;
+            } else {
+                // Pierwsza odpowiedź - zapisujemy
+                sendResponse(response);
+            }
+        })
+        .catch(() => {
+            document.getElementById("status").innerText = "Błąd połączenia.";
+        });
+
+        function sendResponse(responseValue) {
+            fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ action: "SAVE", response: responseValue, token, email, meeting })
+            })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById("status").innerText = "Dziękujemy za Twoją opinię!";
+                } else {
+                    document.getElementById("status").innerText = "Wystąpił błąd. Spróbuj ponownie.";
+                }
+            })
+            .catch(() => {
+                document.getElementById("status").innerText = "Błąd połączenia.";
+            });
+        }
+
+        function updateResponse() {
+            sendResponse(response);
+        }
+
+        function cancel() {
+            document.getElementById("status").innerText = "Twoja ocena pozostaje bez zmian.";
+            document.getElementById("change-response").classList.add("hidden");
+        }
+    </script>
 </body>
 </html>
