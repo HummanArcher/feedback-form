@@ -46,6 +46,21 @@
         .ok { background-color: #ffc107; color: white; }
         .bad { background-color: #dc3545; color: white; }
         
+        /* Kontener dla komentarza */
+        .comment-container {
+            display: none;
+            margin-top: 20px;
+        }
+        textarea {
+            width: 80%;
+            height: 100px;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+        }
+
         /* Wyśrodkowanie przycisku */
         .button-container {
             display: flex;
@@ -86,6 +101,12 @@
 
     <p class="message"><strong>Wybrana opcja:</strong> <span id="selectedOption">Brak</span></p>
 
+    <!-- Pole na komentarz pojawia się tylko dla BAD -->
+    <div class="comment-container" id="commentContainer">
+        <p><strong>Co poszło nie tak? (opcjonalne)</strong></p>
+        <textarea id="comment" placeholder="Opisz problem, jeśli chcesz."></textarea>
+    </div>
+
     <div class="button-container">
         <button id="confirm" onclick="sendFeedback()" disabled>Wyślij</button>
     </div>
@@ -109,6 +130,13 @@
                 selectedElement.classList.add('selected');
             }
 
+  	    // Pokaż pole komentarza, jeśli wybrano BAD
+            if (value === "BAD") {
+                document.getElementById("commentContainer").style.display = "block";
+            } else {
+                document.getElementById("commentContainer").style.display = "none";
+            }
+
             // Odblokowanie przycisku po wybraniu opcji
             document.getElementById("confirm").disabled = false;
         }
@@ -122,13 +150,14 @@
             const email = getQueryParam('email');
             const meeting = getQueryParam('meeting');
             const token = getQueryParam('token');
+	    const comment = document.getElementById("comment").value; // Pobranie komentarza
 
             fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", { 
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ response: selectedResponse, email, meeting, token })
+                body: JSON.stringify({ response: selectedResponse, email, meeting, token, comment })
             })
             .then(() => {
                 document.getElementById("status").innerText = "Dziękujemy za Twoją opinię!";
