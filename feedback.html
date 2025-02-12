@@ -104,7 +104,10 @@
             
             // Zmiana podświetlenia
             document.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
-            document.getElementById(value).classList.add('selected');
+            let selectedElement = document.getElementById(value);
+            if (selectedElement) {
+                selectedElement.classList.add('selected');
+            }
 
             // Odblokowanie przycisku po wybraniu opcji
             document.getElementById("confirm").disabled = false;
@@ -120,7 +123,7 @@
             const meeting = getQueryParam('meeting');
             const token = getQueryParam('token');
 
-            fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", {
+            fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", { 
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
