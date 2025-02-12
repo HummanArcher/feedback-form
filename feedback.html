@@ -4,21 +4,90 @@
     <meta charset="UTF-8">
     <title>Ocena spotkania</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-        .message { font-size: 20px; margin-top: 20px; }
-        .hidden { display: none; }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f4f4f4;
+        }
+        h2 {
+            color: #333;
+        }
+        .message {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+        .options-container {
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .option {
+            width: 100px;
+            height: 100px;
+            font-size: 40px;
+            border: 3px solid transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .option:hover {
+            transform: scale(1.1);
+        }
+        .selected {
+            border: 4px solid #000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .good { background-color: #28a745; color: white; }
+        .ok { background-color: #ffc107; color: white; }
+        .bad { background-color: #dc3545; color: white; }
+        
+        /* Wyśrodkowanie przycisku */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        #confirm {
+            padding: 15px 30px;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            transition: background 0.3s, transform 0.2s;
+            display: none;
+        }
+        #confirm:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+        #confirm:hover:enabled {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
-    <h2>Przetwarzanie Twojej opinii...</h2>
-    <p class="message" id="status">Proszę czekać...</p>
+    <h2>Oto Twoja opinia o spotkaniu</h2>
+    <p class="message" id="status">Sprawdź swoją ocenę, a następnie kliknij "Wyślij".</p>
 
-    <div id="change-response" class="hidden">
-        <p>Już odpowiedziałeś na tę ankietę.</p>
-        <p>Twoja obecna ocena: <strong id="current-response"></strong></p>
-        <p>Czy chcesz zmienić swoją ocenę?</p>
-        <button onclick="updateResponse()">Tak</button>
-        <button onclick="cancel()">Nie</button>
+    <div class="options-container">
+        <div class="option good" onclick="selectResponse('good', '😊')" id="good">😊</div>
+        <div class="option ok" onclick="selectResponse('ok', '😐')" id="ok">😐</div>
+        <div class="option bad" onclick="selectResponse('bad', '😞')" id="bad">😞</div>
+    </div>
+
+    <p class="message"><strong>Wybrana opcja:</strong> <span id="selectedOption">Brak</span></p>
+
+    <div class="button-container">
+        <button id="confirm" onclick="sendFeedback()" disabled>Wyślij</button>
     </div>
 
     <script>
@@ -27,62 +96,63 @@
             return urlParams.get(param);
         }
 
-        const response = getQueryParam('response');
-        const email = getQueryParam('email');
-        const meeting = getQueryParam('meeting');
-        const token = getQueryParam('token');
+        let selectedResponse = null;
 
-        fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ action: "CHECK", token, email, meeting })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.exists) {
-                // Już oddano głos
-                document.getElementById("status").classList.add("hidden");
-                document.getElementById("change-response").classList.remove("hidden");
-                document.getElementById("current-response").innerText = data.response;
-            } else {
-                // Pierwsza odpowiedź - zapisujemy
-                sendResponse(response);
-            }
-        })
-        .catch(() => {
-            document.getElementById("status").innerText = "Błąd połączenia.";
-        });
+        function selectResponse(value, emoji) {
+            selectedResponse = value;
+            document.getElementById("selectedOption").innerText = emoji;
+            
+            // Zmiana podświetlenia
+            document.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
+            document.getElementById(value).classList.add('selected');
 
-        function sendResponse(responseValue) {
+            // Odblokowanie przycisku po wybraniu opcji
+            document.getElementById("confirm").disabled = false;
+        }
+
+        function sendFeedback() {
+            if (!selectedResponse) return;
+            
+            document.getElementById("confirm").disabled = true;
+            document.getElementById("status").innerText = "Przetwarzanie...";
+
+            const email = getQueryParam('email');
+            const meeting = getQueryParam('meeting');
+            const token = getQueryParam('token');
+
             fetch("https://prod-225.westeurope.logic.azure.com/workflows/c2778f06a2944605aef52f00f67ae31f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=/triggers/manual/run&sv=1.0&sig=1eDWg6iErUNoTbgwfQf5P-kHLjgdbCz4XTMxq191Or4", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ action: "SAVE", response: responseValue, token, email, meeting })
+                body: JSON.stringify({ response: selectedResponse, email, meeting, token })
             })
-            .then(response => {
-                if (response.ok) {
-                    document.getElementById("status").innerText = "Dziękujemy za Twoją opinię!";
-                } else {
-                    document.getElementById("status").innerText = "Wystąpił błąd. Spróbuj ponownie.";
-                }
+            .then(() => {
+                document.getElementById("status").innerText = "Dziękujemy za Twoją opinię!";
+                document.getElementById("confirm").style.display = "none";
             })
             .catch(() => {
                 document.getElementById("status").innerText = "Błąd połączenia.";
             });
         }
 
-        function updateResponse() {
-            sendResponse(response);
-        }
+        // Opóźnienie odblokowania przycisku (anti-bot delay)
+        setTimeout(() => { document.getElementById("confirm").style.display = "block"; }, 300);
 
-        function cancel() {
-            document.getElementById("status").innerText = "Twoja ocena pozostaje bez zmian.";
-            document.getElementById("change-response").classList.add("hidden");
-        }
+        // Wczytanie wybranej odpowiedzi z URL i automatyczne podświetlenie
+        window.onload = function() {
+            const presetResponse = getQueryParam('response');
+            if (presetResponse) {
+                let emojiMap = {
+                    "good": "😊",
+                    "ok": "😐",
+                    "bad": "😞"
+                };
+                if (emojiMap[presetResponse]) {
+                    selectResponse(presetResponse, emojiMap[presetResponse]);
+                }
+            }
+        };
     </script>
 </body>
 </html>
