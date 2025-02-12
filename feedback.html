@@ -79,9 +79,9 @@
     <p class="message" id="status">Sprawdź swoją ocenę, a następnie kliknij "Wyślij".</p>
 
     <div class="options-container">
-        <div class="option good" onclick="selectResponse('good', '😊')" id="good">😊</div>
-        <div class="option ok" onclick="selectResponse('ok', '😐')" id="ok">😐</div>
-        <div class="option bad" onclick="selectResponse('bad', '😞')" id="bad">😞</div>
+        <div class="option good" onclick="selectResponse('GOOD', '😊')" id="GOOD">😊</div>
+        <div class="option ok" onclick="selectResponse('OK', '😐')" id="OK">😐</div>
+        <div class="option bad" onclick="selectResponse('BAD', '😞')" id="BAD">😞</div>
     </div>
 
     <p class="message"><strong>Wybrana opcja:</strong> <span id="selectedOption">Brak</span></p>
@@ -142,15 +142,14 @@
         // Wczytanie wybranej odpowiedzi z URL i automatyczne podświetlenie
         window.onload = function() {
             const presetResponse = getQueryParam('response');
-            if (presetResponse) {
-                let emojiMap = {
-                    "good": "😊",
-                    "ok": "😐",
-                    "bad": "😞"
-                };
-                if (emojiMap[presetResponse]) {
-                    selectResponse(presetResponse, emojiMap[presetResponse]);
-                }
+              let emojiMap = {
+                "good": "😊",
+                "ok": "😐",
+                "bad": "😞"
+            };
+
+            if (presetResponse && emojiMap[presetResponse]) {
+                selectResponse(presetResponse, emojiMap[presetResponse]);
             }
         };
     </script>
